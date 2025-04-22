@@ -38,7 +38,7 @@ class ImagePublishers(DTROS):
         self._yellow_publisher = rospy.Publisher(self._yellow_detection_topic, CompressedImage)
 
         self._undistort_topic = f"/{self._vehicle_name}/camera_node/undistorted_image/compressed"
-        self._publisher = rospy.Publisher(self._undistort_topic, CompressedImage)
+        self._publisher = rospy.Publisher(self._undistort_topic, CompressedImage, queue_size=1)
 
         self._homography_topic = f"/{self._vehicle_name}/camera_node/homography/compressed"
         self._homography_publisher = rospy.Publisher(self._homography_topic, CompressedImage)
@@ -260,7 +260,7 @@ class ImagePublishers(DTROS):
         
         warped = cv2.warpPerspective(image, M, img_size)
 
-        self._homography_publisher.publish(self._bridge.cv2_to_compressed_imgmsg(warped))
+        # self._homography_publisher.publish(self._bridge.cv2_to_compressed_imgmsg(warped))
 
         return warped
 

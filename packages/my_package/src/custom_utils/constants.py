@@ -9,3 +9,7 @@ class Stall(Enum):
 class Lane(Enum):
     LEFT = 1
     RIGHT = 2
+
+class Tag(Enum):
+    LEFT = 48
+    RIGHT = 50

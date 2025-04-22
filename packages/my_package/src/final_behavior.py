@@ -23,8 +23,6 @@ class FinalBehaviorMain(DTROS):
             if not isinstance(task,FinalBehaviorMainTask):
                 raise ValueError("task not recognized")
 
-            print("Running " + str(task.__class__.__name__))
-
             task.execute(self)
             
         rospy.signal_shutdown(reason="tasks complete")
@@ -34,14 +32,55 @@ class FinalBehaviorMain(DTROS):
         self._wheels_publisher.publish(stop)
 
 if __name__ == "__main__":
-    stall = Stall.TWO
-    tasks = [
-        # StallAlignmentTask(target_stall=stall, proportional_gain=0.05, derivative_gain=0.05, integral_gain=0, velocity=0.3, integral_saturation=100),
-        # ForwardParkingTask(target_stall=stall),
-        # FindBrokenBot(detection_threshold=1000),
-        # SwitchLanesUntilSafe(detection_threshold=250) # 250 is original for detection_threshold
-        Tailing()
+
+    tasks = []
+
+    part_1_tasks = [
+        # Tailing()
     ]
+
+    part_2_tasks = [
+        LeftRightTagTask()
+    ]
+
+
+    part_3_tasks = [
+        # RightLaneUntilCrosswalk(),
+        # WhiteLaneUntilCrossWalk(),
+        # Stop(stop_time=0),
+        # FreezeUntilDucksPass(),
+        # Stop(stop_time=3),
+        # FindBrokenBot(detection_threshold=800),
+        # Stop(stop_time=3),
+        # SwitchLanesUntilSafe(base_velocity=0.25, detection_threshold=1000),
+        # Stop(stop_time=1),
+        # RightLaneUntilCrosswalk(),
+        # WhiteLaneUntilCrossWalk(),
+        # Stop(stop_time=0),
+        # FreezeUntilDucksPass(),
+        # Stop(stop_time=3),
+        # LaneFollowUntilIntersection(base_velocity=0.25),
+        # Stop(stop_time=3),
+    ]
+
+    stall = Stall.ONE
+
+    part_4_tasks = [
+        # TurnLeftTask(radians=math.pi/10, R=0, angular_velocity=3),
+        # StallAlignmentTask(target_stall=stall, proportional_gain=0.05, derivative_gain=0.05, integral_gain=0, velocity=0.35, integral_saturation=100),
+        # TagAlignmentTask(stall=stall, proportional_gain=0.007, derivative_gain=0.05, integral_gain=0, integral_saturation=0, debug=True, detection_sensitivity=300),
+        # ForwardParkingTask(target_stall=stall),
+    ]
+
+    # Initialize the main task list
+    tasks = []
+
+    # Extend the main task list with the individual parts
+    tasks.extend(part_1_tasks)
+    tasks.extend(part_2_tasks)
+    tasks.extend(part_3_tasks)
+    tasks.extend(part_4_tasks)
+
     node = FinalBehaviorMain(node_name="final_behavior_main_node", tasks=tasks)
     node.run()
     rospy.spin()
