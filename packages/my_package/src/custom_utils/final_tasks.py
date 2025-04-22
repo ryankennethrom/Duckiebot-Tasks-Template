@@ -17,7 +17,7 @@ import numpy as np
 import rospy
 import os
 from custom_utils.constants import Stall, Tag
-from custom_utils.led_control import *
+from custom_utils.color_operations import *
 
 class FinalBehaviorMainTask():
     def execute(self, dtros):
@@ -68,7 +68,7 @@ class HomographyTask(RawImageTask):
     
 class TurnRightTask(FinalBehaviorMainTask):
     #R = 0.35
-    def __init__(self, precision=40, tolerance=0, radians=math.pi/2, angular_velocity=1.5, R=0.2):
+    def __init__(self, precision=40, tolerance=0, radians=math.pi/5, angular_velocity=1.5, R=0.2):
         super().__init__()
         self._precision = precision
         self._tolerance = tolerance
@@ -147,6 +147,64 @@ class TurnRightTask(FinalBehaviorMainTask):
 
         # msg = f""" total_change_angle: {total_change_angle}, target_radian {target_radian}"""
         # rospy.loginfo(msg)
+
+class PulsingRightTurnTask(TurnRightTask):
+    def __init__(self, precision=40, tolerance=0, radians=math.pi/5, angular_velocity=1.5, R=0.2,
+                 pulse_duration=0.2, pause_duration=0.3):
+        super().__init__(precision, tolerance, radians, angular_velocity, R)
+        self._pulse_duration = pulse_duration
+        self._pause_duration = pause_duration
+
+    def runTask(self, dtros):
+        precision = self._precision
+        tolerance = self._tolerance
+        target_radian = self._radians
+        angular_velocity = self._angular_velocity
+        R = self._R
+        pulse_duration = self._pulse_duration
+        pause_duration = self._pause_duration
+
+        self._distance_left = 0
+        self._distance_right = 0
+        self._ticks_left = None
+        self._ticks_right = None
+
+        v_r = (R - self._l * 3) * angular_velocity
+        v_l = (R + self._l * 3) * angular_velocity
+
+        message = WheelsCmdStamped(vel_left=v_l, vel_right=v_r)
+        stop_msg = WheelsCmdStamped(vel_left=0, vel_right=0)
+
+        pulsing = True
+        last_pulse_time = time.time()
+
+        rate = rospy.Rate(precision)
+
+        while not rospy.is_shutdown():
+            current_time = time.time()
+            total_change_angle = (self._distance_right - self._distance_left) / (2 * self._l)
+
+            if abs(total_change_angle) >= (abs(target_radian) - tolerance):
+                dtros._wheels_publisher.publish(stop_msg)
+                break
+
+            # Send pulse or pause
+            if pulsing:
+                vel = 0.2
+                message = WheelsCmdStamped(vel_left=vel, vel_right=-vel)
+                dtros._wheels_publisher.publish(message)
+            else:
+                dtros._wheels_publisher.publish(WheelsCmdStamped(vel_left=0, vel_right=0))
+
+            # Toggle pulse/pause state
+            if pulsing and (current_time - last_pulse_time) > pulse_duration:
+                pulsing = False
+                last_pulse_time = current_time
+            elif not pulsing and (current_time - last_pulse_time) > pause_duration:
+                pulsing = True
+                last_pulse_time = current_time
+
+            rate.sleep()
 
 class TurnLeftTask(FinalBehaviorMainTask):
     # R = 0.4445
@@ -229,6 +287,62 @@ class TurnLeftTask(FinalBehaviorMainTask):
 
         # msg = f""" total_change_angle: {total_change_angle}, target_radian {target_radian}"""
         # rospy.loginfo(msg)
+
+class PulsingLeftTurnTask(TurnLeftTask):
+    def __init__(self, precision=40, tolerance=0.04, radians=math.pi/2, angular_velocity=2, R=0.45,
+                 pulse_duration=0.2, pause_duration=0.3):
+        super().__init__(precision, tolerance, radians, angular_velocity, R)
+        self._pulse_duration = pulse_duration
+        self._pause_duration = pause_duration
+
+    def runTask(self, dtros):
+        precision = self._precision
+        tolerance = self._tolerance
+        target_radian = self._radians
+        angular_velocity = self._angular_velocity
+        R = self._R
+        pulse_duration = self._pulse_duration
+        pause_duration = self._pause_duration
+
+        self._distance_left = 0
+        self._distance_right = 0
+        self._ticks_left = None
+        self._ticks_right = None
+
+        v_l = (R - self._l * 3) * angular_velocity
+        v_r = (R + self._l * 3) * angular_velocity
+
+        stop_msg = WheelsCmdStamped(vel_left=0, vel_right=0)
+
+        pulsing = True
+        last_pulse_time = time.time()
+
+        rate = rospy.Rate(precision)
+
+        while not rospy.is_shutdown():
+            current_time = time.time()
+            total_change_angle = (self._distance_right - self._distance_left) / (2 * self._l)
+
+            if abs(total_change_angle) >= (abs(target_radian) - tolerance):
+                dtros._wheels_publisher.publish(stop_msg)
+                break
+
+            # Send pulse or pause
+            if pulsing:
+                vel = 0.2
+                message = WheelsCmdStamped(vel_left=-vel, vel_right=vel)
+                dtros._wheels_publisher.publish(message)
+            else:
+                dtros._wheels_publisher.publish(WheelsCmdStamped(vel_left=0, vel_right=0))
+
+            if pulsing and (current_time - last_pulse_time) > pulse_duration:
+                pulsing = False
+                last_pulse_time = current_time
+            elif not pulsing and (current_time - last_pulse_time) > pause_duration:
+                pulsing = True
+                last_pulse_time = current_time
+
+            rate.sleep()
 
 class StallAlignmentTask(FinalBehaviorMainTask):
     def __init__(self, target_stall, proportional_gain, derivative_gain, integral_gain, velocity, integral_saturation):
@@ -322,11 +436,11 @@ class StallAlignmentTask(FinalBehaviorMainTask):
 
         if self._target_stall in [Stall.ONE, Stall.TWO]:
             rospy.loginfo("Turning Right TASK")
-            TurnRightTask(R=0, angular_velocity=3, tolerance=0.6).execute(dtros)
+            PulsingRightTurnTask(radians=math.pi/2).execute(dtros)
         else:
             rospy.loginfo("Turning Right TASK")
-            TurnLeftTask(R=0, angular_velocity=3, tolerance=0.6).execute(dtros)
-        
+            PulsingLeftTurnTask(radians=math.pi/2).execute(dtros)
+
     def updateError(self):
         lines = []
         lines.extend(self._yellow_lines) 
@@ -497,7 +611,8 @@ class ForwardParkingTask(FinalBehaviorMainTask):
             rate.sleep()
 
 class LaneFollowing(FinalBehaviorMainTask):
-    def __init__(self, base_velocity=0.3, debug=True):
+    # integral_gain=0.0000002
+    def __init__(self, base_velocity=0.3, integral_gain=0, debug=True):
         self._bridge = CvBridge()
         self._error_last = 0
         self._error = 0
@@ -509,6 +624,7 @@ class LaneFollowing(FinalBehaviorMainTask):
         self._mask_yellow = None
         self._debug = debug
         self._raw_image = None
+        self._integral_gain = integral_gain
 
     def onStart(self, dtros):
         vehicle_name = os.environ["VEHICLE_NAME"]
@@ -548,7 +664,7 @@ class LaneFollowing(FinalBehaviorMainTask):
         while not rospy.is_shutdown():
             if self.isTimeToStop():
                 break
-            integration_stored_updated, error_last_updated, message = PIDOperations.getForwardPIDWheelMsg(base_velocity=self._base_velocity, error_last=self._error_last, integration_stored=self._integration_stored, error=self._error, proportional_gain=0.0000002, derivative_gain=0.0000002, integral_gain=0.0000002, integral_saturation=500000)
+            integration_stored_updated, error_last_updated, message = PIDOperations.getForwardPIDWheelMsg(base_velocity=self._base_velocity, error_last=self._error_last, integration_stored=self._integration_stored, error=self._error, proportional_gain=0.0000002, derivative_gain=0.0000002, integral_gain=self._integral_gain, integral_saturation=500000)
             self._error_last = error_last_updated
             self._integration_stored = integration_stored_updated
             dtros._wheels_publisher.publish(message)
@@ -733,11 +849,14 @@ class LaneFollowUntilIntersection(LaneFollowing):
     def isTimeToStop(self):
         if self._debug == True:
             # print(MaskOperations.getActiveCenter(self._red_mask)[1])
+            # print(MaskOperations.getMaskVarianceAxisX(self._red_mask)) if self._red_mask is not None else None
+            #return False
             pass
-        if self._red_mask is not None and MaskOperations.getActiveCount(self._red_mask) > 10000 and MaskOperations.getActiveCenter(self._red_mask)[1] > 300:
+        if self._red_mask is not None and MaskOperations.getActiveCount(self._red_mask) > 1000 and MaskOperations.getActiveCenter(self._red_mask)[1] > 300:
             return True
         else:
             return False
+    
 
 class DriveOverRedline(LaneFollowUntilIntersection):
     def __init__(self, base_velocity=0.5, red_count_target=10000, debug=True):
@@ -805,6 +924,22 @@ class TailUntilIntersection(LaneFollowUntilIntersection):
             dtros._wheels_publisher.publish(message)
             rate.sleep()
 
+class TailWithTimeout(TailUntilIntersection):
+    def __init__(self, tailing_task, base_velocity=0.25, timeout=4):
+        super().__init__(base_velocity=0.25, tailing_task=tailing_task)
+        self._timeout = timeout
+
+        self._start_time_stamp = None
+
+    def runTask(self, dtros):
+        self._start_time_stamp = time.time()
+        super().runTask(dtros)
+    
+    def isTimeToStop(self):
+        if self._start_time_stamp is not None and (time.time() - self._start_time_stamp) > self._timeout:
+            return True
+        return False
+
 class TailingLeftTurn(TurnLeftTask):
     def __init__(self, tailing_task, angular_velocity, debug=True):
         super().__init__(angular_velocity=angular_velocity, radians=math.pi/3)
@@ -855,7 +990,7 @@ class TailingLeftTurn(TurnLeftTask):
 
 class TailingRightTurn(TurnRightTask):
     def __init__(self, tailing_task, debug=False):
-        super().__init__(radians=math.pi/3)
+        super().__init__(radians=math.pi/2, angular_velocity=2)
         self._tailing_task = tailing_task
         self._debug=debug
 
@@ -872,8 +1007,8 @@ class TailingRightTurn(TurnRightTask):
 
         rate = rospy.Rate(precision)
 
-        v_l = (R + self._l*3) * angular_velocity
         v_r = (R - self._l*3) * angular_velocity
+        v_l = (R + self._l*3) * angular_velocity
 
         while not rospy.is_shutdown():
             message = WheelsCmdStamped(vel_left=v_l, vel_right=v_r)
@@ -924,13 +1059,16 @@ class Tailing(FinalBehaviorMainTask):
 
     def onStart(self, dtros):
         vehicle_name = os.environ["VEHICLE_NAME"]
+        self._led_publisher = rospy.Publisher(f'/{vehicle_name}/led_emitter_node/led_pattern', LEDPattern, queue_size=10)
+        
+        vehicle_name = os.environ["VEHICLE_NAME"]
         self._raw_image_topic = f"/{vehicle_name}/camera_node/image/compressed"
         self._sub_grawr_image = rospy.Subscriber(self._raw_image_topic, CompressedImage, self.callback_raw_image)
-
+        
     def callback_raw_image(self, msg):
         image = self._bridge.compressed_imgmsg_to_cv2(msg)
-        undistorted = ImageOperations.undistort(image)
-        self._duckie_blue_mask = ImageOperations.getDuckiebotBlueMask(undistorted)
+        # undistorted = ImageOperations.undistort(image)
+        self._duckie_blue_mask = ImageOperations.getDuckiebotBlueMask(image)
 
         if MaskOperations.getActiveCount(self._duckie_blue_mask) > 1000:
             if MaskOperations.getActiveCenter(self._duckie_blue_mask)[0] > ImageOperations.getImageWidth(self._duckie_blue_mask) - (4 * ImageOperations.getImageWidth(self._duckie_blue_mask)) // 9:
@@ -939,7 +1077,20 @@ class Tailing(FinalBehaviorMainTask):
                 self._duckiebot_last_seen = "Left"
             else:
                 self._duckiebot_last_seen = "Straight"
-                
+
+        # if MaskOperations.getActiveCount(self._duckie_blue_mask) > 1000:
+        #     led_msg = ColorOperations.getLedMessage(colorPattern=ColorPattern(frontLeft=Colors.Green, frontRight=Colors.Green, backLeft=Colors.Green, backRight=Colors.Green))
+        #     if MaskOperations.getActiveCenter(self._duckie_blue_mask)[0] > ImageOperations.getImageWidth(self._duckie_blue_mask) - (4 * ImageOperations.getImageWidth(self._duckie_blue_mask)) // 9:
+        #         self._duckiebot_last_seen = "Right"
+        #     elif MaskOperations.getActiveCenter(self._duckie_blue_mask)[0] < (4 * ImageOperations.getImageWidth(self._duckie_blue_mask)) // 9:
+        #         self._duckiebot_last_seen = "Left"
+        #     else:
+        #         self._duckiebot_last_seen = "Straight"
+        # else:
+        #     led_msg = ColorOperations.getLedMessage(colorPattern=ColorPattern(frontLeft=Colors.Red, frontRight=Colors.Red, backLeft=Colors.Red, backRight=Colors.Red))
+        # led_msg = ColorOperations.getLedMessage(colorPattern=ColorPattern(frontLeft=Colors.Off, frontRight=Colors.Off, backLeft=Colors.Off, backRight=Colors.Off))
+        # self._led_publisher.publish(led_msg)
+
         if self._debug == True:
             cv2.imshow("Duckie Blue Mask", self._duckie_blue_mask)
             cv2.waitKey(1)
@@ -959,11 +1110,14 @@ class Tailing(FinalBehaviorMainTask):
             DriveOverRedline().execute(dtros)
             if self._duckiebot_last_seen == "Right":
                 TailingRightTurn(tailing_task=self, debug=False).execute(dtros)
+                continue
             elif self._duckiebot_last_seen == "Left":
                 TailingLeftTurn(tailing_task=self, angular_velocity=2).execute(dtros)
+            TailUntilDistance(target_distance=0.7, tailing_task=self).execute(dtros)
 
 class LRTicksTask(FinalBehaviorMainTask):
     def __init__(self):
+        super().__init__()
         self._vehicle_name = os.environ["VEHICLE_NAME"]
         self._ticks_left = None
         self._ticks_right = None
@@ -1125,6 +1279,150 @@ class TagAlignmentTask(AprilTagTask):
 
             rate.sleep()
 
+class LaneFollowUntilX(LaneFollowing):
+    def __init__(self, base_velocity, debug=True):
+        super().__init__(base_velocity=base_velocity, debug=debug)
+
+    def isTimeToStop(self):
+        raise Exception("isTimeToStop() must be overriden")
+
+class LaneFollowUntilTimeout(LaneFollowUntilX):
+    def __init__(self, base_velocity, timeout, debug=True):
+        super().__init__(base_velocity=base_velocity, debug=debug)
+        self._timeout = timeout
+        self._start_time_stamp = None
+    
+    def onStart(self, dtros):
+        super().onStart(dtros)
+        self._start_time_stamp = time.time()
+    
+    def isTimeToStop(self):
+        if (time.time() - self._start_time_stamp) > self._timeout:
+            return True
+        return False
+
+
+class TailUntilX(LaneFollowUntilX):
+    def __init__(self, base_velocity, tailing_task, debug=True):
+        super().__init__(base_velocity=base_velocity, debug=debug)
+        self._tailing_task = tailing_task
+
+    def runTask(self, dtros):
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+
+            if self._tailing_task.isTargetTooClose():
+                message = WheelsCmdStamped(vel_left=0, vel_right=0)
+                dtros._wheels_publisher.publish(message)
+                rate.sleep()
+                continue
+
+            if self.isTimeToStop():
+                break
+
+            integration_stored_updated, error_last_updated, message = PIDOperations.getForwardPIDWheelMsg(base_velocity=self._base_velocity, error_last=self._error_last, integration_stored=self._integration_stored, error=self._error, proportional_gain=0.0000002, derivative_gain=0.0000002, integral_gain=0.0000002, integral_saturation=500000)
+            self._error_last = error_last_updated
+            self._integration_stored = integration_stored_updated
+            dtros._wheels_publisher.publish(message)
+            rate.sleep()
+
+    def isTimeToStop(self):
+        raise Exception("isTimeToStop() must be overriden")
+
+class TailUntilDistance(TailUntilX):
+    def __init__(self, tailing_task, target_distance, base_velocity=0.25):
+        super().__init__(base_velocity=base_velocity, tailing_task=tailing_task)
+        self._target_distance = target_distance
+        self._vehicle_name = os.environ["VEHICLE_NAME"]
+        self._ticks_left = None
+        self._ticks_right = None
+
+        self._distance_left = 0
+        self._distance_right = 0
+        self._distance = 0
+        self._resolution = 135
+        self._radius = rospy.get_param(f'/{self._vehicle_name}/kinematics_node/radius', 0.0318)
+
+    def onStart(self, dtros):
+        super().onStart(dtros)
+        left_encoder_topic = f"/{self._vehicle_name}/left_wheel_encoder_node/tick"
+        right_encoder_topic = f"/{self._vehicle_name}/right_wheel_encoder_node/tick"
+        self._sub_left_ticks = rospy.Subscriber(left_encoder_topic, WheelEncoderStamped, self.callback_left)
+        self._sub_right_ticks = rospy.Subscriber(right_encoder_topic, WheelEncoderStamped, self.callback_right)
+    
+    def callback_left(self, data):
+        if self._ticks_left is None:
+            self._ticks_left = data.data
+            return
+        
+        self._distance_left += 2*math.pi*self._radius*((data.data - self._ticks_left)/self._resolution)
+        self._ticks_left = data.data
+        self.update_distance()
+    
+    def callback_right(self, data):
+        if self._ticks_right is None:
+            self._ticks_right = data.data
+            return
+        
+        self._distance_right += 2*math.pi*self._radius*((data.data - self._ticks_right)/self._resolution)
+        self._ticks_right = data.data
+        self.update_distance()
+
+    def update_distance(self):
+        self._distance = (self._distance_left + self._distance_right) / 2
+
+    def isTimeToStop(self):
+        if self._distance > self._target_distance:
+            return True
+        return False
+
+class LaneFollowUntilDistance(LaneFollowUntilX):
+    def __init__(self, target_distance, base_velocity=0.25):
+        super().__init__(base_velocity=base_velocity)
+        self._target_distance = target_distance
+        self._vehicle_name = os.environ["VEHICLE_NAME"]
+        self._ticks_left = None
+        self._ticks_right = None
+
+        self._distance_left = 0
+        self._distance_right = 0
+        self._distance = 0
+        self._resolution = 135
+        self._radius = rospy.get_param(f'/{self._vehicle_name}/kinematics_node/radius', 0.0318)
+
+    def onStart(self, dtros):
+        super().onStart(dtros)
+        left_encoder_topic = f"/{self._vehicle_name}/left_wheel_encoder_node/tick"
+        right_encoder_topic = f"/{self._vehicle_name}/right_wheel_encoder_node/tick"
+        self._sub_left_ticks = rospy.Subscriber(left_encoder_topic, WheelEncoderStamped, self.callback_left)
+        self._sub_right_ticks = rospy.Subscriber(right_encoder_topic, WheelEncoderStamped, self.callback_right)
+    
+    def callback_left(self, data):
+        if self._ticks_left is None:
+            self._ticks_left = data.data
+            return
+        
+        self._distance_left += 2*math.pi*self._radius*((data.data - self._ticks_left)/self._resolution)
+        self._ticks_left = data.data
+        self.update_distance()
+    
+    def callback_right(self, data):
+        if self._ticks_right is None:
+            self._ticks_right = data.data
+            return
+        
+        self._distance_right += 2*math.pi*self._radius*((data.data - self._ticks_right)/self._resolution)
+        self._ticks_right = data.data
+        self.update_distance()
+
+    def update_distance(self):
+        self._distance = (self._distance_left + self._distance_right) / 2
+
+    def isTimeToStop(self):
+        if self._distance > self._target_distance:
+            return True
+        return False
+
 class LeftRightTagTask(RawImageTask):
     def __init__(self, debug=True, detection_sensitivity=300):
         super().__init__()
@@ -1135,19 +1433,9 @@ class LeftRightTagTask(RawImageTask):
 
     def callback_raw_image(self, msg):
         super().callback_raw_image(msg)
-        undistort_grayscale = ImageOperations.getGrayscale(ImageOperations.undistort(self._raw_image))
-
-        results = ImageOperations.getAprilDetectionResults(undistort_grayscale, self._detector)
-
-        for r in results:
-            if (r.tag_id == Tag.LEFT.value or r.tag_id == Tag.RIGHT.value) and TagROperations.getPerimeterInPixels(r) > self._detection_sensitivity:
-                if self._debug == True:
-                    undistort_grayscale = ImageOperations.getAnnotateImage(undistort_grayscale, r)
-                self._recent_tag_detected = Tag.LEFT if r.tag_id == Tag.LEFT.value else Tag.RIGHT 
-
-        if self._debug == True:
-            cv2.imshow("April Tag detection", undistort_grayscale)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     cv2.imshow("April Tag detection", undistort_grayscale)
+        #     cv2.waitKey(1)
     
     def runTask(self, dtros):
         counter = 0
@@ -1156,17 +1444,46 @@ class LeftRightTagTask(RawImageTask):
                 break
             LaneFollowUntilIntersection(base_velocity=0.3).execute(dtros)
             Stop(stop_time=3).execute(dtros)
+
+            BackwardsWithDelay(timeout=3).execute(dtros)
+
+            undistort_grayscale = ImageOperations.getGrayscale(ImageOperations.undistort(self._raw_image))
+            results = ImageOperations.getAprilDetectionResults(undistort_grayscale, self._detector)
+            for r in results:
+                if (r.tag_id == Tag.LEFT.value or r.tag_id == Tag.RIGHT.value) and TagROperations.getPerimeterInPixels(r) > 100:
+                    self._recent_tag_detected = Tag.LEFT if r.tag_id == Tag.LEFT.value else Tag.RIGHT 
+            LaneFollowUntilIntersection(base_velocity=0.3).execute(dtros)
+            Stop(stop_time=3).execute(dtros)
+
             DriveOverRedline(red_count_target=1000).execute(dtros)
             Stop(stop_time=0).execute(dtros)
+
             if self._recent_tag_detected == Tag.LEFT:
                 left_tag_seen = True
-                TurnLeftTask(angular_velocity=2, radians=math.pi/4).execute(dtros)
+                TurnLeftTask(angular_velocity=2, radians=math.pi/3).execute(dtros)
+                LaneFollowUntilDistance(target_distance=0.7).execute(dtros)
             elif self._recent_tag_detected == Tag.RIGHT:
                 right_tag_seen = True
-                TurnRightTask(radians=math.pi/3, angular_velocity=2, R=0.25).execute(dtros)
+                TurnRightTask(radians=math.pi/2, angular_velocity=2, R=0.25).execute(dtros)
                 Stop(stop_time=0).execute(dtros)
             counter += 1
 
+class BackwardsWithDelay(FinalBehaviorMainTask):
+    def __init__(self, timeout=2):
+        self._timeout = timeout
+        self._start_time_stamp = None
+    
+    def onStart(self, dtros):
+        self._start_time_stamp = time.time()
+    
+    def runTask(self, dtros):
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            if (time.time() - self._start_time_stamp) > self._timeout:
+                break
+            message = WheelsCmdStamped(vel_left=-0.3, vel_right=-0.3)
+            dtros._wheels_publisher.publish(message)
+            rate.sleep()
 
 class TailingWithBluePID(FinalBehaviorMainTask):
     def __init__(self, base_velocity=0.3, scale=1, debug=True):

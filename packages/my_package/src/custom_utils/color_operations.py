@@ -17,17 +17,19 @@ class Colors(Enum):
     DarkOrange = [1.0, 0.55, 0]
     White = [1.0, 1.0, 1.0]  # White color
 
-class LEDState():
-    def __init__(self, message_name, colorPattern):
-        if(not isinstance(colorPattern, ColorPattern)):
-            raise Exception("colorPattern must be of type ColorPattern")
-        self.message_name = message_name
-        self.led_colors = colorPattern.getColorMask()
-    
-    def getLedMessage(self):
+class ColorOperations:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ImageOperations, cls).__new__(cls)
+        return cls._instance
+
+    @staticmethod
+    def getLedMessage(colorPattern):
         led_msg = LEDPattern()
 
-        for color in self.led_colors:
+        for color in colorPattern.getColorMask():
             # Color for the LEDs
             rgba = ColorRGBA()
             rgba.r = color[0]

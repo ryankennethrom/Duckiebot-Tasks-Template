@@ -6,6 +6,7 @@ from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import WheelsCmdStamped
 from custom_utils.constants import Stall
 from custom_utils.final_tasks import *
+import argparse
 
 class FinalBehaviorMain(DTROS):
     def __init__(self, node_name, tasks):
@@ -32,24 +33,25 @@ class FinalBehaviorMain(DTROS):
         self._wheels_publisher.publish(stop)
 
 if __name__ == "__main__":
+    import math
 
-    tasks = []
+    stall = Stall.THREE
 
-    part_1_tasks = [
-        # Tailing()
-    ]
+    tasks = [
+        # # # part 1
+        # Tailing(),
 
-    part_2_tasks = [
-        LeftRightTagTask()
-    ]
+        # # part 2
+        # LeftRightTagTask(),
 
-
-    part_3_tasks = [
+        # # part 3
         # RightLaneUntilCrosswalk(),
         # WhiteLaneUntilCrossWalk(),
         # Stop(stop_time=0),
         # FreezeUntilDucksPass(),
         # Stop(stop_time=3),
+        # LaneFollowUntilTimeout(base_velocity=0.25, timeout=3),
+        # Stop(stop_time=0),
         # FindBrokenBot(detection_threshold=800),
         # Stop(stop_time=3),
         # SwitchLanesUntilSafe(base_velocity=0.25, detection_threshold=1000),
@@ -59,27 +61,15 @@ if __name__ == "__main__":
         # Stop(stop_time=0),
         # FreezeUntilDucksPass(),
         # Stop(stop_time=3),
-        # LaneFollowUntilIntersection(base_velocity=0.25),
-        # Stop(stop_time=3),
+        LaneFollowUntilIntersection(base_velocity=0.25),
+        Stop(stop_time=3),
+
+        # part 4
+        TurnLeftTask(radians=math.pi/10, R=0, angular_velocity=3),
+        StallAlignmentTask(target_stall=stall, proportional_gain=0.05, derivative_gain=0.05, integral_gain=0, velocity=0.35, integral_saturation=100),
+        TagAlignmentTask(stall=stall, proportional_gain=0.007, derivative_gain=0.05, integral_gain=0, integral_saturation=0, debug=True, detection_sensitivity=300),
+        ForwardParkingTask(target_stall=stall),
     ]
-
-    stall = Stall.ONE
-
-    part_4_tasks = [
-        # TurnLeftTask(radians=math.pi/10, R=0, angular_velocity=3),
-        # StallAlignmentTask(target_stall=stall, proportional_gain=0.05, derivative_gain=0.05, integral_gain=0, velocity=0.35, integral_saturation=100),
-        # TagAlignmentTask(stall=stall, proportional_gain=0.007, derivative_gain=0.05, integral_gain=0, integral_saturation=0, debug=True, detection_sensitivity=300),
-        # ForwardParkingTask(target_stall=stall),
-    ]
-
-    # Initialize the main task list
-    tasks = []
-
-    # Extend the main task list with the individual parts
-    tasks.extend(part_1_tasks)
-    tasks.extend(part_2_tasks)
-    tasks.extend(part_3_tasks)
-    tasks.extend(part_4_tasks)
 
     node = FinalBehaviorMain(node_name="final_behavior_main_node", tasks=tasks)
     node.run()
