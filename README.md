@@ -29,7 +29,7 @@ List the dependencies in the files `dependencies-apt.txt` and
 
 ### 4. Place your code
 
-Place your code in the directory `/packages/` of
+Place your code in the directory `/custom_utils/` and `main.py`  of
 your new repository.
 
 
