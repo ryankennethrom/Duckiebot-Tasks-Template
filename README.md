@@ -45,3 +45,8 @@ a launcher will be created for it. For example, the script file
 
 When launching a new container, you can simply provide `dt-launcher-my-launcher` as
 command.
+
+# Sample Tasks
+
+### Vehicle Avoidance
+![Vehicle Avoidance](https://github.com/user-attachments/assets/b4e2b0a7-a244-49ca-a85f-08339bebde51)
