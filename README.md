@@ -5,7 +5,7 @@ ROS template for easy insertion/removal of Duckiebot behaviors.
 **NOTE:** If you want to develop software that does not use
 ROS, check out [this template](https://github.com/duckietown/template-basic).
 
-# Sample Tasks
+## Sample Tasks
 
 ### Lane Following
 ![Best_Lane_Following](https://github.com/user-attachments/assets/ca664c3c-ada9-402c-abd5-e0e27931a453)
