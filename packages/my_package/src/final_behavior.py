@@ -35,32 +35,32 @@ class FinalBehaviorMain(DTROS):
 if __name__ == "__main__":
     import math
 
-    stall = Stall.THREE
+    stall = Stall.TWO
 
     tasks = [
-        # # # part 1
-        # Tailing(),
+        # # part 1
+        Tailing(),
 
-        # # part 2
-        # LeftRightTagTask(),
+        # part 2
+        LeftRightTagTask(),
 
-        # # part 3
-        # RightLaneUntilCrosswalk(),
-        # WhiteLaneUntilCrossWalk(),
-        # Stop(stop_time=0),
-        # FreezeUntilDucksPass(),
-        # Stop(stop_time=3),
-        # LaneFollowUntilTimeout(base_velocity=0.25, timeout=3),
-        # Stop(stop_time=0),
-        # FindBrokenBot(detection_threshold=800),
-        # Stop(stop_time=3),
-        # SwitchLanesUntilSafe(base_velocity=0.25, detection_threshold=1000),
-        # Stop(stop_time=1),
-        # RightLaneUntilCrosswalk(),
-        # WhiteLaneUntilCrossWalk(),
-        # Stop(stop_time=0),
-        # FreezeUntilDucksPass(),
-        # Stop(stop_time=3),
+        # part 3
+        RightLaneUntilCrosswalk(),
+        WhiteLaneUntilCrossWalk(),
+        Stop(stop_time=0),
+        FreezeUntilDucksPass(),
+        Stop(stop_time=3),
+        LaneFollowUntilTimeout(base_velocity=0.25, timeout=3),
+        Stop(stop_time=0),
+        FindBrokenBot(detection_threshold=800),
+        Stop(stop_time=3),
+        SwitchLanesUntilSafe(base_velocity=0.25, detection_threshold=1000),
+        Stop(stop_time=1),
+        RightLaneUntilCrosswalk(),
+        WhiteLaneUntilCrossWalk(),
+        Stop(stop_time=0),
+        FreezeUntilDucksPass(),
+        Stop(stop_time=3),
         LaneFollowUntilIntersection(base_velocity=0.25),
         Stop(stop_time=3),
 

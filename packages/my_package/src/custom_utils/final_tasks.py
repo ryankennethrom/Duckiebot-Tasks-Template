@@ -390,8 +390,8 @@ class StallAlignmentTask(FinalBehaviorMainTask):
 
         self.updateError()
 
-        cv2.imshow("Undistort White Mask", image)
-        cv2.waitKey(1)
+        # cv2.imshow("Undistort White Mask", image)
+        # cv2.waitKey(1)
 
     def onStart(self, dtros):
 
@@ -549,14 +549,14 @@ class ForwardParkingTask(FinalBehaviorMainTask):
                 self._target_tag_error = (r.center[0] - (width // 2))*0.005
                 if self._debug == True:
                     print(self._target_tag_error)
-                    cv2.imshow("Detection", image)
-                    cv2.waitKey(1)
+                    # cv2.imshow("Detection", image)
+                    # cv2.waitKey(1)
                 return
             
         self._target_tag_error = 0
         
-        cv2.imshow("Detection", image)
-        cv2.waitKey(1)
+        # cv2.imshow("Detection", image)
+        # cv2.waitKey(1)
 
     def runTask(self, dtros):
         rate = rospy.Rate(10)  # 10 Hz
@@ -612,7 +612,7 @@ class ForwardParkingTask(FinalBehaviorMainTask):
 
 class LaneFollowing(FinalBehaviorMainTask):
     # integral_gain=0.0000002
-    def __init__(self, base_velocity=0.3, integral_gain=0, debug=True):
+    def __init__(self, base_velocity=0.3, integral_gain=0, debug=False):
         self._bridge = CvBridge()
         self._error_last = 0
         self._error = 0
@@ -648,11 +648,11 @@ class LaneFollowing(FinalBehaviorMainTask):
         
         self._error = self.getError()
 
-        if self._debug == True:
-            cv2.imshow("White Mask", self._mask_white)
-            cv2.imshow("Raw Image", image)
-            cv2.imshow("Yellow Mask", self._mask_yellow)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     cv2.imshow("White Mask", self._mask_white)
+        #     cv2.imshow("Raw Image", image)
+        #     cv2.imshow("Yellow Mask", self._mask_yellow)
+        #     cv2.waitKey(1)
         #     self._undistorted_white_mask_publisher.publish(self._bridge.cv2_to_compressed_imgmsg(self._mask_white))
         #     self._undistorted_yellow_mask_publisher.publish(self._bridge.cv2_to_compressed_imgmsg(self._mask_yellow))
     
@@ -770,17 +770,17 @@ class RightLaneUntilCrosswalk(RightLaneFollowingWithLaneCorrection):
         else:
             self._crosswalk_detected_and_close_enough = False
 
-        if self._debug == True:
-            # print(MaskOperations.getActiveCount(cross_walk_blue_mask))
-            # print(self._crosswalk_detected_and_close_enough)
-            cv2.imshow("Crosswalk Blue Mask", cross_walk_blue_mask)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     # print(MaskOperations.getActiveCount(cross_walk_blue_mask))
+        #     # print(self._crosswalk_detected_and_close_enough)
+        #     cv2.imshow("Crosswalk Blue Mask", cross_walk_blue_mask)
+        #     cv2.waitKey(1)
 
     def isTimeToStop(self):
         return self._crosswalk_detected_and_close_enough
 
 class WhiteLaneUntilCrossWalk(LaneFollowing):
-    def __init__(self, debug=True):
+    def __init__(self, debug=False):
         super().__init__()
         self._crosswalk_detected_and_close_enough = False
         self._debug = debug
@@ -792,9 +792,9 @@ class WhiteLaneUntilCrossWalk(LaneFollowing):
             self._crosswalk_detected_and_close_enough = True
         else:
             self._crosswalk_detected_and_close_enough = False
-        if self._debug == True:
-            cv2.imshow("Crosswalk Blue Mask", cross_walk_blue_mask)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     cv2.imshow("Crosswalk Blue Mask", cross_walk_blue_mask)
+        #     cv2.waitKey(1)
     
 
     def getError(self):
@@ -834,7 +834,7 @@ class FreezeUntilDucksPass(HomographyTask):
             rate.sleep()
 
 class LaneFollowUntilIntersection(LaneFollowing):
-    def __init__(self, base_velocity, debug=True):
+    def __init__(self, base_velocity, debug=False):
         super().__init__(base_velocity=base_velocity, debug=debug)
         self._red_mask = None
 
@@ -842,9 +842,9 @@ class LaneFollowUntilIntersection(LaneFollowing):
         super().callback_raw_image(msg)
         self._red_mask = ImageOperations.getRedMask(self._homography)
 
-        if self._debug == True:
-            cv2.imshow("Homography Red Mask", self._red_mask)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     cv2.imshow("Homography Red Mask", self._red_mask)
+        #     cv2.waitKey(1)
     
     def isTimeToStop(self):
         if self._debug == True:
@@ -1091,9 +1091,9 @@ class Tailing(FinalBehaviorMainTask):
         # led_msg = ColorOperations.getLedMessage(colorPattern=ColorPattern(frontLeft=Colors.Off, frontRight=Colors.Off, backLeft=Colors.Off, backRight=Colors.Off))
         # self._led_publisher.publish(led_msg)
 
-        if self._debug == True:
-            cv2.imshow("Duckie Blue Mask", self._duckie_blue_mask)
-            cv2.waitKey(1)
+        # if self._debug == True:
+        #     cv2.imshow("Duckie Blue Mask", self._duckie_blue_mask)
+        #     cv2.waitKey(1)
 
     def isTargetTooClose(self):
         return MaskOperations.getActiveCount(self._duckie_blue_mask) > self._detection_threshold
@@ -1223,8 +1223,8 @@ class TagAlignmentTask(AprilTagTask):
 
                 self._undistort_gray = ImageOperations.getAnnotateImage(self._undistort_gray, r)
             
-        cv2.imshow("Detection", self._undistort_gray)
-        cv2.waitKey(1)        
+        # cv2.imshow("Detection", self._undistort_gray)
+        # cv2.waitKey(1)        
 
     def runTask(self, dtros):
         rate = rospy.Rate(10)  # 10 Hz control loop
@@ -1486,7 +1486,7 @@ class BackwardsWithDelay(FinalBehaviorMainTask):
             rate.sleep()
 
 class TailingWithBluePID(FinalBehaviorMainTask):
-    def __init__(self, base_velocity=0.3, scale=1, debug=True):
+    def __init__(self, base_velocity=0.3, scale=1, debug=False):
         # PID states for lane-following
         self._lane_error_last = 0
         self._lane_integration = 0
