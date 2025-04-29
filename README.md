@@ -48,5 +48,5 @@ command.
 
 # Sample Tasks
 
-### Vehicle Avoidance
+### Lane following + Lane change + Vehicle Avoidance
 ![Vehicle Avoidance](https://github.com/user-attachments/assets/b4e2b0a7-a244-49ca-a85f-08339bebde51)
