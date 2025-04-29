@@ -21,7 +21,7 @@ class Main(DTROS):
     def run(self):
         for task in self._tasks:
 
-            if not isinstance(task,FinalBehaviorMainTask):
+            if not isinstance(task,Task):
                 raise ValueError("task not recognized")
 
             task.execute(self)

@@ -19,7 +19,7 @@ import os
 from custom_utils.constants import Stall, Tag
 from custom_utils.color_operations import *
 
-class FinalBehaviorMainTask():
+class Task():
     def execute(self, dtros):
         print(str(self.__class__.__name__) + " started")
         self.onStart(dtros)
@@ -36,7 +36,7 @@ class FinalBehaviorMainTask():
     def runTask(self, dtros):
         raise Exception("runTask() must be overriden")
     
-class RawImageTask(FinalBehaviorMainTask):
+class RawImageTask(Task):
     def __init__(self):
         self._raw_image = None
         self._bridge = CvBridge()
@@ -66,7 +66,7 @@ class HomographyTask(RawImageTask):
     def runTask(self, dtros):
         return super().runTask(dtros)
     
-class TurnRightTask(FinalBehaviorMainTask):
+class TurnRightTask(Task):
     #R = 0.35
     def __init__(self, precision=40, tolerance=0, radians=math.pi/5, angular_velocity=1.5, R=0.2):
         super().__init__()
@@ -206,7 +206,7 @@ class PulsingRightTurnTask(TurnRightTask):
 
             rate.sleep()
 
-class TurnLeftTask(FinalBehaviorMainTask):
+class TurnLeftTask(Task):
     # R = 0.4445
     def __init__(self, precision=40, tolerance=0.04, radians=math.pi/2, angular_velocity=2, R=0.45):
         super().__init__()
@@ -344,7 +344,7 @@ class PulsingLeftTurnTask(TurnLeftTask):
 
             rate.sleep()
 
-class StallAlignmentTask(FinalBehaviorMainTask):
+class StallAlignmentTask(Task):
     def __init__(self, target_stall, proportional_gain, derivative_gain, integral_gain, velocity, integral_saturation):
         
         if not isinstance(target_stall, Stall):
@@ -482,7 +482,7 @@ class StallAlignmentTask(FinalBehaviorMainTask):
 
         return P + I + D
     
-class ForwardParkingTask(FinalBehaviorMainTask):
+class ForwardParkingTask(Task):
     def __init__(self, target_stall):
         self._target_stall = target_stall
         self.detector = dt_apriltags.Detector(families="tag36h11")
@@ -610,7 +610,7 @@ class ForwardParkingTask(FinalBehaviorMainTask):
 
             rate.sleep()
 
-class LaneFollowing(FinalBehaviorMainTask):
+class LaneFollowing(Task):
     # integral_gain=0.0000002
     def __init__(self, base_velocity=0.3, integral_gain=0, debug=False):
         self._bridge = CvBridge()
@@ -872,7 +872,7 @@ class DriveOverRedline(LaneFollowUntilIntersection):
             dtros._wheels_publisher.publish(message)
             rate.sleep()
 
-class Stop(FinalBehaviorMainTask):
+class Stop(Task):
     def __init__(self, stop_time=1):
         self._stop_time = stop_time
         self._stop_start_stamp = None
@@ -1049,7 +1049,7 @@ class FreezeUntilTargetIsFarEnough(Stop):
             return True
         return False
 
-class Tailing(FinalBehaviorMainTask):
+class Tailing(Task):
     def __init__(self, detection_threshold=3000, debug=False):
         self._bridge = CvBridge()
         self._duckie_blue_mask = None
@@ -1115,7 +1115,7 @@ class Tailing(FinalBehaviorMainTask):
                 TailingLeftTurn(tailing_task=self, angular_velocity=2).execute(dtros)
             TailUntilDistance(target_distance=0.7, tailing_task=self).execute(dtros)
 
-class LRTicksTask(FinalBehaviorMainTask):
+class LRTicksTask(Task):
     def __init__(self):
         super().__init__()
         self._vehicle_name = os.environ["VEHICLE_NAME"]
@@ -1468,7 +1468,7 @@ class LeftRightTagTask(RawImageTask):
                 Stop(stop_time=0).execute(dtros)
             counter += 1
 
-class BackwardsWithDelay(FinalBehaviorMainTask):
+class BackwardsWithDelay(Task):
     def __init__(self, timeout=2):
         self._timeout = timeout
         self._start_time_stamp = None
@@ -1485,7 +1485,7 @@ class BackwardsWithDelay(FinalBehaviorMainTask):
             dtros._wheels_publisher.publish(message)
             rate.sleep()
 
-class TailingWithBluePID(FinalBehaviorMainTask):
+class TailingWithBluePID(Task):
     def __init__(self, base_velocity=0.3, scale=1, debug=False):
         # PID states for lane-following
         self._lane_error_last = 0
