@@ -1,7 +1,6 @@
 # Template: template-ros
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
+ROS template for easy insertion/removal of Duckiebot behaviors.
 
 **NOTE:** If you want to develop software that does not use
 ROS, check out [this template](https://github.com/duckietown/template-basic).
