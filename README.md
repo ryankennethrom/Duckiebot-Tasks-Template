@@ -8,7 +8,7 @@ ROS, check out [this template](https://github.com/duckietown/template-basic).
 
 # Sample Tasks
 
-### Lane following + Lane change + Vehicle Avoidance
+### Vehicle Avoidance
 ![Vehicle Avoidance](https://github.com/user-attachments/assets/2fb9948f-5e1a-4972-95f7-4bdd0d6e6a92)
 
 
