@@ -5,12 +5,12 @@ import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import WheelsCmdStamped
 from custom_utils.constants import Stall
-from custom_utils.final_tasks import *
+from custom_utils.tasks import *
 import argparse
 
-class FinalBehaviorMain(DTROS):
+class Main(DTROS):
     def __init__(self, node_name, tasks):
-        super(FinalBehaviorMain, self).__init__(node_name=node_name, node_type=NodeType.GENERIC)
+        super(Main, self).__init__(node_name=node_name, node_type=NodeType.GENERIC)
 
         self._tasks = tasks
 
@@ -71,6 +71,6 @@ if __name__ == "__main__":
         ForwardParkingTask(target_stall=stall),
     ]
 
-    node = FinalBehaviorMain(node_name="final_behavior_main_node", tasks=tasks)
+    node = Main(node_name="main_node", tasks=tasks)
     node.run()
     rospy.spin()
