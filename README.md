@@ -6,6 +6,11 @@ for developing ROS-based software in Duckietown.
 **NOTE:** If you want to develop software that does not use
 ROS, check out [this template](https://github.com/duckietown/template-basic).
 
+# Sample Tasks
+
+### Lane following + Lane change + Vehicle Avoidance
+![Vehicle Avoidance](https://github.com/user-attachments/assets/2fb9948f-5e1a-4972-95f7-4bdd0d6e6a92)
+
 
 ## How to use it
 
@@ -46,8 +51,4 @@ a launcher will be created for it. For example, the script file
 When launching a new container, you can simply provide `dt-launcher-my-launcher` as
 command.
 
-# Sample Tasks
-
-### Lane following + Lane change + Vehicle Avoidance
-![Vehicle Avoidance (1)](https://github.com/user-attachments/assets/2053de9b-9258-48b8-99a6-a52b8e44b297)
 
